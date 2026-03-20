@@ -508,6 +508,42 @@ function pickInspirationFoods() {
   return sets;
 }
 
+function getUserId() {
+  var id = localStorage.getItem('user_id');
+  if (!id) {
+    id = 'u_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now().toString(36);
+    localStorage.setItem('user_id', id);
+  }
+  return id;
+}
+
+function trackUsage(meal_type, mode) {
+  fetch('/api/track', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ meal_type: meal_type, mode: mode, user_id: getUserId() })
+  }).catch(function() {});
+}
+
+function renderStats(stats) {
+  var output = document.getElementById('output');
+  var MEAL_LABELS = { snidane: 'Snídaně', obed: 'Oběd', svacina: 'Svačina', vecere: 'Večeře' };
+  var topMeal = stats.top_meal_type ? (MEAL_LABELS[stats.top_meal_type.name] || stats.top_meal_type.name) + ' (' + stats.top_meal_type.count + '×)' : '–';
+  var html = '<div class="result">';
+  html += '<div class="result-header"><h2>📊 Statistiky použití</h2></div>';
+  html += '<div class="meal-card">';
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">';
+  html += '<div style="background:white;border-radius:12px;padding:1rem;text-align:center;border:1px solid var(--border)"><div style="font-size:1.8rem;font-weight:700;color:var(--terracotta)">' + stats.total + '</div><div style="font-size:0.78rem;color:var(--text-muted);margin-top:0.2rem">Celkem použití</div></div>';
+  html += '<div style="background:white;border-radius:12px;padding:1rem;text-align:center;border:1px solid var(--border)"><div style="font-size:1.8rem;font-weight:700;color:var(--sage)">' + stats.unique_users + '</div><div style="font-size:0.78rem;color:var(--text-muted);margin-top:0.2rem">Unikátní uživatelé</div></div>';
+  html += '<div style="background:white;border-radius:12px;padding:1rem;text-align:center;border:1px solid var(--border)"><div style="font-size:1.8rem;font-weight:700;color:var(--brown)">' + stats.today + '</div><div style="font-size:0.78rem;color:var(--text-muted);margin-top:0.2rem">Dnes</div></div>';
+  html += '<div style="background:white;border-radius:12px;padding:1rem;text-align:center;border:1px solid var(--border)"><div style="font-size:1.8rem;font-weight:700;color:var(--brown)">' + stats.this_week + '</div><div style="font-size:0.78rem;color:var(--text-muted);margin-top:0.2rem">Tento týden</div></div>';
+  html += '<div style="background:white;border-radius:12px;padding:1rem;text-align:center;border:1px solid var(--border)"><div style="font-size:1.8rem;font-weight:700;color:var(--brown)">' + stats.this_month + '</div><div style="font-size:0.78rem;color:var(--text-muted);margin-top:0.2rem">Tento měsíc</div></div>';
+  html += '<div style="background:white;border-radius:12px;padding:1rem;text-align:center;border:1px solid var(--border)"><div style="font-size:1rem;font-weight:700;color:var(--terracotta);margin-top:0.3rem">' + topMeal + '</div><div style="font-size:0.78rem;color:var(--text-muted);margin-top:0.2rem">Nejoblíbenější jídlo</div></div>';
+  html += '</div></div></div>';
+  output.innerHTML = html;
+  output.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
 async function generate(inspiration) {
   var foods;
   var inspirationSets = null;
@@ -518,6 +554,25 @@ async function generate(inspiration) {
     if (selected.size === 0) return;
     foods = Array.from(selected).join(', ');
   }
+
+  // Tajná kombinace: bezlepku + snídaně + pouze surovina "Hovězí" → zobraz statistiky
+  if (!inspiration && selectedPref === 'bezlepku' && selectedMealType === 'snidane' && selected.size === 1 && selected.has('Hovězí')) {
+    var secretBtn = document.getElementById('generateBtn');
+    var secretOutput = document.getElementById('output');
+    secretBtn.disabled = true;
+    secretOutput.innerHTML = '<div class="loading"><div class="loading-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><p>Načítám statistiky...</p></div>';
+    try {
+      var statsResp = await fetch('/api/stats');
+      var statsData = await statsResp.json();
+      renderStats(statsData);
+    } catch(e) {
+      secretOutput.innerHTML = '<div class="error-box">Chyba načítání statistik: ' + e.message + '</div>';
+    }
+    secretBtn.disabled = false;
+    return;
+  }
+
+  trackUsage(selectedMealType, inspiration ? 'nahodny' : 'konkretni');
 
   var btn = inspiration ? document.getElementById('inspirationBtn') : document.getElementById('generateBtn');
   var output = document.getElementById('output');

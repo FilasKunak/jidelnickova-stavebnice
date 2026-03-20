@@ -1,3 +1,9 @@
 {
-  "name": "jidelnickova-stavebnice"
+  "name": "jidelnickova-stavebnice",
+  "functions": {
+    "api/*.js": {
+      "memory": 128,
+      "maxDuration": 10
+    }
+  }
 }
