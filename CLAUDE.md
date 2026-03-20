@@ -1,63 +1,61 @@
-# Jídelníčková stavebnice – Projektový CLAUDE.md
+# Jídelníčková stavebnice CoreRestart — dokumentace projektu
 
-## O projektu
+## Co aplikace dělá
+AI webová aplikace pro generování jídel podle metody Pravidlo ruky (porcování bez vážení).
+Cílová skupina: ženy 25–60 let.
 
-**Jídelníčková stavebnice** je webová aplikace určená primárně pro ženy, které chtějí transformovat své tělo pomocí zdravého stravování. Aplikace využívá AI (Anthropic API) pro generování personalizovaných jídelníčků a receptů.
+## Technický stack
+- Frontend: čistý HTML/CSS/JS (index.html)
+- Backend: Vercel serverless funkce (api/)
+- Databáze: Supabase (PostgreSQL)
+- AI: Anthropic API
+- Hosting: Vercel
+- Repozitář: github.com/FilasKunak/jidelnickova-stavebnice
 
-Aktuální fáze: **MVP – jednoduchá verze pro první klientky.**
+## Struktura souborů
+- index.html — celá frontendová aplikace
+- api/generate.js — proxy pro Anthropic API (generování jídel)
+- api/track.js — ukládání statistik do Supabase
+- api/stats.js — čtení statistik ze Supabase
+- vercel.json — konfigurace Vercelu
 
-## Cílová skupina
+## Environment proměnné (nastaveny na Vercelu)
+- ANTHROPIC_API_KEY — klíč pro Anthropic API
+- SUPABASE_URL — https://aizwejxgedkbyvghsmwj.supabase.co
+- SUPABASE_SERVICE_KEY — service role klíč pro Supabase
 
-Ženy, které chtějí:
-- Změnit své stravovací návyky
-- Transformovat své tělo
-- Mít rychlý přístup k inspiraci pro vaření bez složitého plánování
+## Supabase databáze
+Tabulka usage_stats:
+- id (BIGSERIAL PRIMARY KEY)
+- created_at (TIMESTAMP WITH TIME ZONE)
+- meal_type (TEXT) — snidane/obed/svacina/vecere
+- mode (TEXT) — konkretni/nahodny
+- user_id (TEXT) — náhodné ID uložené v localStorage
 
-## Aktuální funkce (MVP)
+## Správný model Anthropic API
+Používej: claude-haiku-4-5-20251001
+POZOR: claude-sonnet-4-20250514 a claude-sonnet-4-5-20251001 jsou neplatná ID!
 
-- Generování jídelníčků pomocí AI (Anthropic API)
-- Zobrazení receptů
-- Nákupní seznam
-- Generování 3 variant jídla podle zvolených surovin
-- Generování náhodných jídel – inspirace
+## Důležité technické poznámky
+1. vercel.json maxDuration musí být 60 — Anthropic API potřebuje více než 10s na odpověď
+2. Pokud vercel.json a api/*.js mají různý maxDuration, vercel.json má PŘEDNOST
+3. Funkce api/generate.js volá Anthropic API se system promptem a user message
+4. index.html volá /api/generate (ne přímo Anthropic API) — API klíč je bezpečně na serveru
 
-## Technologie
+## Tajná kombinace pro statistiky
+Stravovací styl: Bez lepku + Typ jídla: Snídaně + Surovina: pouze Hovězí + klik Sestavit jídlo
+→ Zobrazí statistiky použití místo receptů
 
-- **Frontend:** HTML, CSS, JavaScript (single-page aplikace)
-- **AI:** Anthropic API (Claude)
-- **Hosting:** Vercel (přes GitHub)
-- **Verzování:** Git + GitHub (repo: FilasKunak)
+## Metoda Pravidlo ruky
+- DLAŇ = bílkoviny (1 dlaň = 1 porce)
+- PĚST = sacharidy (1 pěst = 1 porce)
+- HRST = zelenina/ovoce (2 hrsti = 1 porce)
+- PALEC = tuky (1 palec = 1 porce)
 
-## Bezpečnost – KRITICKÉ
-
-Původní HTML kód obsahuje **viditelný Anthropic API klíč přímo v kódu**. Toto je bezpečnostní riziko – API klíč nesmí být nikdy v kódu na GitHubu ani ve frontendu.
-
-### Řešení: Spouštět API volání ze serveru
-
-- API klíč musí být uložen jako **environment variable na Vercelu** (nikdy v kódu)
-- Veškerá komunikace s Anthropic API musí probíhat přes **serverovou funkci** (Vercel Serverless Function)
-- Frontend komunikuje pouze se serverovou funkcí, nikoli přímo s Anthropic API
-- Soubor `.env` musí být v `.gitignore`
-
-### Při každé změně kódu zkontrolovat:
-- Není API klíč viditelný ve frontend kódu?
-- Probíhají všechna API volání přes server?
-- Je `.env` v `.gitignore`?
-
-## Plánované budoucí funkce
-
-- Přihlašování uživatelů (autentizace)
-- Ukládání jídelníčků pro každého uživatele
-- Placená verze (subscription model)
-
-## Workflow nasazení
-
-Git (lokální) → GitHub (FilasKunak) → Vercel (automatický deploy)
-
-## Důležité poznámky pro Claude
-
-- Vždy komunikuj česky
-- Toto je MVP – drž řešení jednoduchá a funkční, nepřidávej zbytečné komplexity
-- Při refaktoringu původního HTML kódu vždy přesuň API volání na server
-- Zachovej stávající vizuální styl a UX aplikace
-- Před každým commitem ověř, že v kódu nejsou žádné citlivé údaje
+## Historie oprav
+### 2026-03-20
+- Opraveno: model ID claude-sonnet-4-20250514 → claude-haiku-4-5-20251001 (neplatné ID)
+- Opraveno: vercel.json maxDuration 10s → 60s (timeout způsoboval JSON parse chybu)
+- Přidáno: statistiky použití přes Supabase
+- Přidáno: tajná kombinace pro zobrazení statistik
+- Přidáno: propojení GitHub → Vercel pro automatický deployment
