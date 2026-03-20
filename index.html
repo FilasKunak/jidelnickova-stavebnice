@@ -556,7 +556,7 @@ async function generate(inspiration) {
   }
 
   // Tajná kombinace: bezlepku + snídaně + pouze surovina "Hovězí" → zobraz statistiky
-  if (!inspiration && selectedPref === 'bezlepku' && selectedMealType === 'snidane' && selected.size === 1 && selected.has('Hovězí')) {
+  if (!inspiration && selectedPref === 'bezlepku' && selectedMealType === 'snidane' && selectedMode === 'konkretni' && selected.size === 1 && selected.has('Hovězí')) {
     var secretBtn = document.getElementById('generateBtn');
     var secretOutput = document.getElementById('output');
     secretBtn.disabled = true;
