@@ -618,7 +618,13 @@ async function generate(inspiration) {
     }
     var text = data.text;
     var clean = text.replace(/```json|```/g, '').trim();
-    var parsed = JSON.parse(clean);
+    var jsonMatch = clean.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      output.innerHTML = '<div class="error-box">Chyba: AI nevrátila správný formát odpovědi. Zkus to znovu.</div>';
+      btn.disabled = false;
+      return;
+    }
+    var parsed = JSON.parse(jsonMatch[0]);
     renderMeals(parsed.meals, inspiration);
   } catch(e) {
     output.innerHTML = '<div class="error-box">Chyba: ' + e.message + '</div>';
